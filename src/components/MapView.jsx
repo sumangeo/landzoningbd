@@ -1,217 +1,314 @@
+/**
+ * MapView.jsx
+ *
+ * FIXES in this version:
+ * ① Search now HIGHLIGHTS matching features (blue glow) and DIMS non-matches
+ * ② Previous search popup is CLOSED before the new one opens (via map.closePopup())
+ * ③ Clearing search restores all feature styles to normal
+ * ④ Uses layerMapRef to store all Leaflet layer instances so a useEffect
+ *    can imperatively manage them when `search` changes — without remounting
+ *    the entire GeoJSON layer on every keystroke.
+ */
+
+import { useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
-import { useEffect } from "react";
-import division from "../data/division.json";
-import district from "../data/district.json";
+import "leaflet/dist/leaflet.css";
+import divisionGeo from "../data/division.json";
+import districtGeo from "../data/district.json";
 
-// ✅ Get name from different datasets
-const getName = (p) =>
-  p.name || p.shapeName || p.upazila || p.ADM3_EN || "Unknown";
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-// ✅ Color based on status (Firebase ready)
-const getColor = (status) => {
-  switch (status) {
-    case "done":
-      return "#22c55e"; // green
-    case "ongoing":
-      return "#facc15"; // yellow
-    default:
-      return "#9ca3af"; // gray
-  }
+const getName = (p) => p?.name || p?.shapeName || p?.upazila || p?.ADM3_EN || "Unknown";
+
+const STATUS_COLORS = {
+  done:    "#059669",   // emerald — strong on light map
+  ongoing: "#d97706",   // amber
+  pending: "#94a3b8",   // lighter slate — more visible on CARTO light
 };
 
-// ✅ Style function
-const style = (feature, selectedId) => {
-  const status = feature.properties?.status;
-  const isSelected = feature.id === selectedId;
+const SEARCH_HIGHLIGHT_COLOR = "#2563eb"; // bold royal blue stands out on light map
 
+const featureStyle = (feature, selectedId) => {
+  const status = feature.properties?.status || "pending";
+  const isSelected = feature.id === selectedId;
   return {
-    color: isSelected ? "#000" : "#333",
-    weight: isSelected ? 3 : 1,
-    fillColor: getColor(status),
-    fillOpacity: isSelected ? 1 : 0.7
+    color:       isSelected ? "#1e293b" : "#475569",
+    weight:      isSelected ? 2.5 : 0.7,
+    fillColor:   STATUS_COLORS[status] || STATUS_COLORS.pending,
+    fillOpacity: isSelected ? 0.88 : 0.55,
   };
 };
 
-// ✅ Auto zoom when data changes
-function ZoomToFeature({ geojson }) {
+// ─── ZoomToFeature ───────────────────────────────────────────────────────────
+
+function ZoomToFeature({ geojson, layer }) {
   const map = useMap();
-
   useEffect(() => {
-    if (!geojson || geojson.features.length === 0) return;
-
-    const bounds = [];
-
+    if (!geojson?.features?.length) return;
+    const latLngs = [];
     geojson.features.forEach((f) => {
-      if (!f.geometry || !f.geometry.coordinates) return;
-
-      let coords = [];
-
-      if (f.geometry.type === "Polygon") {
-        coords = f.geometry.coordinates[0];
-      } else if (f.geometry.type === "MultiPolygon") {
-        coords = f.geometry.coordinates[0][0];
-      }
-
-      coords.forEach((c) => bounds.push([c[1], c[0]]));
+      if (!f.geometry?.coordinates) return;
+      const rings =
+        f.geometry.type === "Polygon"
+          ? [f.geometry.coordinates[0]]
+          : f.geometry.coordinates.map((p) => p[0]);
+      rings.forEach((ring) => ring.forEach(([lng, lat]) => latLngs.push([lat, lng])));
     });
-
-    if (bounds.length > 0) {
-      map.fitBounds(bounds);
-    }
-  }, [geojson]);
-
+    if (latLngs.length) map.fitBounds(latLngs, { padding: [24, 24] });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geojson, layer]);
   return null;
 }
 
-// ✅ MAIN COMPONENT
+// ─── WebView Touch Fix ───────────────────────────────────────────────────────
+
+function WebViewTouchFix() {
+  const map = useMap();
+  useEffect(() => {
+    map.getContainer().style.touchAction = "pan-x pan-y";
+  }, [map]);
+  return null;
+}
+
+// ─── GeoJSON Layer with search-aware highlighting ────────────────────────────
+
+function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
+  const selectedRef  = useRef(selectedId);
+  const onClickRef   = useRef(onFeatureClick);
+  // KEY FIX ②③: store every Leaflet layer instance as it mounts
+  const layerMapRef  = useRef({});
+
+  useEffect(() => { selectedRef.current = selectedId;  }, [selectedId]);
+  useEffect(() => { onClickRef.current  = onFeatureClick; }, [onFeatureClick]);
+
+  // ── KEY FIX ①②③: react to search changes ──────────────────────────────
+  useEffect(() => {
+    const entries = Object.values(layerMapRef.current);
+    if (!entries.length) return;
+
+    // Always close ALL open popups first (FIX ② — clears stale popup)
+    entries.forEach(({ lyr }) => {
+      try { lyr.closePopup(); } catch {}
+    });
+
+    if (!search.trim()) {
+      // Restore every feature to its default style (FIX ③)
+      entries.forEach(({ lyr, feature }) => {
+        try { lyr.setStyle(featureStyle(feature, selectedRef.current)); } catch {}
+      });
+      return;
+    }
+
+    const query = search.toLowerCase().trim();
+    let firstMatchLyr = null;
+
+    entries.forEach(({ lyr, feature }) => {
+      const name = getName(feature.properties);
+      const isMatch = name.toLowerCase().includes(query);
+
+      if (isMatch) {
+        // FIX ①: highlight matched feature with blue glow
+        try {
+          lyr.setStyle({
+            color:       "#fff",
+            weight:      2.5,
+            fillColor:   SEARCH_HIGHLIGHT_COLOR,
+            fillOpacity: 0.88,
+          });
+          lyr.bringToFront();
+          lyr.openPopup();
+        } catch {}
+        if (!firstMatchLyr) firstMatchLyr = lyr;
+      } else {
+        // FIX ①: dim non-matching features
+        try {
+          lyr.setStyle({
+            ...featureStyle(feature, selectedRef.current),
+            fillOpacity: 0.15,
+            weight: 0.4,
+          });
+        } catch {}
+      }
+    });
+
+    // Zoom to first match — maxZoom:11 keeps adjacent areas visible for context
+    if (firstMatchLyr) {
+      setTimeout(() => {
+        try {
+          firstMatchLyr._map.fitBounds(firstMatchLyr.getBounds(), {
+            padding: [100, 100],
+            maxZoom: 11,          // never zoom closer than zoom-11 (shows ~3-4 adjacent upazilas)
+            animate: true,
+            duration: 0.5,
+          });
+        } catch {}
+      }, 80);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  // ── onEachFeature: bind popup, store layer ref, add events ───────────────
+  const onEachFeature = useCallback((feature, lyr) => {
+    const name = getName(feature.properties);
+    const status = feature.properties?.status || "pending";
+    const progress = feature.properties?.progress ?? 0;
+
+    // Rich popup content
+    const statusColor = STATUS_COLORS[status];
+    lyr.bindPopup(
+      `<div class="map-popup">
+        <div class="map-popup-name">${name}</div>
+        <div class="map-popup-meta">
+          <span class="map-popup-dot" style="background:${statusColor}"></span>
+          <span class="map-popup-status">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+          <span class="map-popup-pct">${progress}%</span>
+        </div>
+        <div class="map-popup-bar-track">
+          <div class="map-popup-bar-fill" style="width:${progress}%;background:${statusColor}"></div>
+        </div>
+      </div>`,
+      { closeButton: false, className: "custom-popup", maxWidth: 220 }
+    );
+
+    // Store layer ref by feature id or name (FIX ②③)
+    const key = feature.id ?? getName(feature.properties);
+    layerMapRef.current[key] = { lyr, feature };
+
+    lyr.on("mouseover", (e) => {
+      e.target.setStyle({ weight: 2.5, fillOpacity: 0.92, color: "#fff" });
+      e.target.bringToFront();
+    });
+
+    lyr.on("mouseout", (e) => {
+      // Only reset if not a current search match
+      const currentSearch = search; // captured at bind time — OK, effect re-runs on search change
+      const isSearchMatch = currentSearch.trim() && name.toLowerCase().includes(currentSearch.toLowerCase().trim());
+      if (!isSearchMatch) {
+        e.target.setStyle(featureStyle(feature, selectedRef.current));
+      }
+    });
+
+    lyr.on("click", (e) => {
+      try { e.target._map.fitBounds(e.target.getBounds(), { padding: [40, 40] }); } catch {}
+      onClickRef.current?.(feature);
+    });
+  // search is intentionally NOT in deps — event handlers are bound once on mount.
+  // The search-driven styling is handled by the useEffect above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <GeoJSON
+      data={geojson}
+      style={(f) => featureStyle(f, selectedId)}
+      onEachFeature={onEachFeature}
+    />
+  );
+}
+
+// ─── Static Outline Layers ───────────────────────────────────────────────────
+
+function StaticOutlines({ showDivision, showDistrict }) {
+  return (
+    <>
+      {showDivision && (
+        <GeoJSON
+          data={divisionGeo}
+          style={{ color: "#1e3a5f", weight: 2, fillOpacity: 0 }}
+        />
+      )}
+      {showDistrict && (
+        <GeoJSON
+          data={districtGeo}
+          style={{ color: "#475569", weight: 0.8, fillOpacity: 0 }}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+
 export default function MapView({
   geojson,
-  onFeatureClick,
   search,
+  layer,
+  filter,
   selectedId,
+  onFeatureClick,
   showDivision,
   showDistrict,
-  showUpazila
+  showUpazila,
 }) {
+  const totalFeatures = geojson?.features?.length ?? 0;
+  const done    = geojson?.features?.filter((f) => f.properties?.status === "done").length    ?? 0;
+  const ongoing = geojson?.features?.filter((f) => f.properties?.status === "ongoing").length ?? 0;
+  const pending = geojson?.features?.filter((f) => f.properties?.status === "pending").length ?? 0;
+  const pct = totalFeatures ? Math.round((done / totalFeatures) * 100) : 0;
+
   return (
-    <MapContainer
-      center={[23.7, 90.4]}
-      zoom={7}
-      style={{ height: "100vh", width: "100%" }}
-    >
-      {/* Base Map */}
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <>
+      <MapContainer
+        center={[23.7, 90.4]}
+        zoom={7}
+        style={{ width: "100%", height: "100%" }}
+        tap={false}
+        zoomControl={true}
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+          detectRetina={true}
+        />
 
-      {/* Auto zoom */}
-      <ZoomToFeature geojson={geojson} />
+        <WebViewTouchFix />
+        <ZoomToFeature geojson={geojson} layer={layer} />
+        <StaticOutlines showDivision={showDivision} showDistrict={showDistrict} />
 
-      {/* GeoJSON Layer */}
-<>
-  {showDivision && (
-    <GeoJSON
-      data={division}
-      style={{ color: "#000", weight: 2, fillOpacity: 0 }}
-    />
-  )}
+        {showUpazila && (
+          <GeoJsonLayer
+            key={`${layer}-${filter}`}
+            geojson={geojson}
+            selectedId={selectedId}
+            search={search}
+            onFeatureClick={onFeatureClick}
+          />
+        )}
+      </MapContainer>
 
-  {showDistrict && (
-    <GeoJSON
-      data={district}
-      style={{ color: "#555", weight: 1, fillOpacity: 0 }}
-    />
-  )}
-
-  {showUpazila && (
-    <GeoJSON
-      key={JSON.stringify(geojson)}
-      data={geojson}
-      style={(feature) => style(feature, selectedId)}
-      onEachFeature={(feature, layer) => {
-
-        const name = getName(feature.properties);
-
-        // Popup
-        layer.bindPopup(name);
-
-        // 🔥 AUTO POPUP ON SEARCH
-        if (
-          search &&
-          // name.toLowerCase() === search.toLowerCase()
-          name.toLowerCase().includes(search.toLowerCase())
-        ) {
-          setTimeout(() => {
-            layer.openPopup();
-            const bounds = layer.getBounds();
-            layer._map.fitBounds(bounds);
-          }, 200);
-        }
-
-        // 🔥 HOVER
-        layer.on("mouseover", (e) => {
-          const l = e.target;
-
-          l.setStyle({
-            weight: 2,
-            color: "#000",
-            fillOpacity: 0.9
-          });
-
-          l.bringToFront();
-          l._path.style.cursor = "pointer";
-        });
-
-        layer.on("mouseout", (e) => {
-          const l = e.target;
-
-          l.setStyle({
-            weight: 1,
-            color: "#333",
-            fillOpacity: 0.7
-          });
-        });
-
-        // 🔥 CLICK
-        layer.on("click", () => {
-          const bounds = layer.getBounds();
-          layer._map.fitBounds(bounds);
-
-          if (onFeatureClick) {
-            onFeatureClick(feature);
-          }
-        });
-      }}
-    />
-  )}
-</>
-//---------------------
-    {/* 🔥 LEGEND */}
-    <div
-      style={{
-        position: "absolute",
-        top: "20px",
-        right: "20px",
-        background: "#fff",
-        padding: "10px 12px",
-        borderRadius: "8px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-        fontSize: "14px",
-        zIndex: 1000
-      }}
-    >
-      <strong>Legend</strong>
-
-      <div style={{ display: "flex", alignItems: "center", marginTop: "6px" }}>
-        <div style={{
-          width: "14px",
-          height: "14px",
-          background: "#22c55e",
-          marginRight: "8px"
-        }} />
-        Done
+      {/* Legend */}
+      <div className="map-legend">
+        <div className="map-legend-header">Legend</div>
+        {[
+          { label: "Done",    color: STATUS_COLORS.done    },
+          { label: "Ongoing", color: STATUS_COLORS.ongoing  },
+          { label: "Pending", color: STATUS_COLORS.pending  },
+        ].map(({ label, color }) => (
+          <div key={label} className="legend-row">
+            <div className="legend-swatch" style={{ background: color }} />
+            <span className="legend-label">{label}</span>
+          </div>
+        ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", marginTop: "4px" }}>
-        <div style={{
-          width: "14px",
-          height: "14px",
-          background: "#facc15",
-          marginRight: "8px"
-        }} />
-        Ongoing
+      {/* Map status bar — shows what's visible */}
+      <div className="map-statusbar">
+        <span className="statusbar-layer">{layer.charAt(0).toUpperCase() + layer.slice(1)}</span>
+        <span className="statusbar-divider">·</span>
+        <span className="statusbar-count">{totalFeatures} areas</span>
+        <span className="statusbar-divider">·</span>
+        <span className="statusbar-done" style={{ color: STATUS_COLORS.done }}>{done} done</span>
+        <span className="statusbar-divider">·</span>
+        <span className="statusbar-ongoing" style={{ color: STATUS_COLORS.ongoing }}>{ongoing} ongoing</span>
+        <span className="statusbar-divider">·</span>
+        <span className="statusbar-pct">{pct}% complete</span>
+        {search && (
+          <>
+            <span className="statusbar-divider">·</span>
+            <span className="statusbar-search">🔍 "{search}"</span>
+          </>
+        )}
       </div>
-
-      <div style={{ display: "flex", alignItems: "center", marginTop: "4px" }}>
-        <div style={{
-          width: "14px",
-          height: "14px",
-          background: "#9ca3af",
-          marginRight: "8px"
-        }} />
-        Pending
-      </div>
-    </div>
-
-
-    </MapContainer>
+    </>
   );
 }

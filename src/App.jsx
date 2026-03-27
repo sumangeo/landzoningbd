@@ -1,168 +1,144 @@
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { collection, onSnapshot } from "firebase/firestore";
 import MapView from "./components/MapView";
 import Sidebar from "./components/Sidebar";
-
-import upazila from "./data/upazila_light.json";
-import district from "./data/district.json";
-import division from "./data/division.json";
-
-import { useState, useEffect } from "react";
-
 import { db } from "./services/firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import upazilaGeo from "./data/upazila_light.json";
+import districtGeo from "./data/district.json";
+import divisionGeo from "./data/division.json";
+import "./index.css";
 
-// ✅ Status logic
 const getStatusFromChildren = (list) => {
   if (!list || list.length === 0) return "pending";
-
-  const doneCount = list.filter((d) => d.status === "done").length;
-
-  if (doneCount === list.length) return "done";
-  if (doneCount > 0) return "ongoing";
+  const done = list.filter((d) => d.status === "done").length;
+  if (done === list.length) return "done";
+  if (done > 0) return "ongoing";
   return "pending";
 };
 
 const getProgress = (list) => {
   if (!list || list.length === 0) return 0;
-
   const done = list.filter((d) => d.status === "done").length;
   return Math.round((done / list.length) * 100);
 };
 
 export default function App() {
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [layer, setLayer] = useState("upazila");
-  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [filter,       setFilter]       = useState("all");
+  const [search,       setSearch]       = useState("");
+  const [layer,        setLayer]        = useState("upazila");
+  const [selectedId,   setSelectedId]   = useState(null);
   const [firebaseData, setFirebaseData] = useState([]);
+  // Mobile: drawer open/close
+  const [sidebarOpen,      setSidebarOpen]      = useState(false);
+  // Desktop: sidebar collapsed/expanded
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   const [showDivision, setShowDivision] = useState(true);
   const [showDistrict, setShowDistrict] = useState(true);
-  const [showUpazila, setShowUpazila] = useState(true);  
-  const [selectedId, setSelectedId] = useState(null);
+  const [showUpazila,  setShowUpazila]  = useState(true);
 
-  // 🔥 Firebase realtime
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "upazila_status"), (snap) => {
-      const list = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setFirebaseData(list);
+      setFirebaseData(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
-
     return () => unsub();
   }, []);
 
-  // 🔥 Select dataset
-  let activeData = upazila;
+  const activeGeo = useMemo(() => {
+    if (layer === "division") return divisionGeo;
+    if (layer === "district") return districtGeo;
+    return upazilaGeo;
+  }, [layer]);
 
-  if (layer === "division") {
-    activeData = division;
-  } else if (layer === "district") {
-    activeData = district;
-  }
-
-  // 🔍 Filter
-  const filteredData = {
-    ...activeData,
-    features: activeData.features.filter((f) => {
-      const name =
-        f.properties.name ||
-        f.properties.shapeName ||
-        "";
-
-      const matchSearch = name
-        .toLowerCase()
-        .includes(search.toLowerCase());
-
-      return matchSearch;
-    }),
-  };
-
-  // 🔥 Merge Firebase status
-  const mergedData = {
-    ...filteredData,
-    features: filteredData.features.map((f) => {
-      const name =
-        f.properties.name || f.properties.shapeName;
-
-      // 🟢 Upazila
+  const mergedData = useMemo(() => {
+    const features = activeGeo.features.map((f) => {
+      const name = f.properties.name || f.properties.shapeName;
       if (layer === "upazila") {
         const match = firebaseData.find((d) => d.id === f.id);
-
-        return {
-          ...f,
-          properties: {
-            ...f.properties,
-            status: match ? match.status : "pending",
-            progress: match && match.status === "done" ? 100 : 0
-          },
-        };
+        return { ...f, properties: { ...f.properties, status: match ? match.status : "pending", progress: match?.status === "done" ? 100 : 0 } };
       }
-
-      // 🟡 District
       if (layer === "district") {
-        const related = firebaseData.filter(
-          (d) => d.district && d.district === name
-        );
-
-        return {
-          ...f,
-          properties: {
-            ...f.properties,
-            status:
-              related.length === 0
-                ? "pending"
-                : getStatusFromChildren(related),
-            progress: getProgress(related)
-          },
-        };
+        const related = firebaseData.filter((d) => d.district === name);
+        return { ...f, properties: { ...f.properties, status: getStatusFromChildren(related), progress: getProgress(related) } };
       }
+      const related = firebaseData.filter((d) => d.division === name);
+      return { ...f, properties: { ...f.properties, status: getStatusFromChildren(related), progress: getProgress(related) } };
+    });
+    return { ...activeGeo, features };
+  }, [layer, activeGeo, firebaseData]);
 
-      // 🔵 Division
-      if (layer === "division") {
-        const related = firebaseData.filter(
-          (d) => d.division && d.division === name
-        );
+  const finalData = useMemo(() => {
+    const features = mergedData.features.filter((f) => {
+      const name = (f.properties.name || f.properties.shapeName || "").toLowerCase();
+      const matchSearch = !search || name.includes(search.toLowerCase());
+      const matchFilter = filter === "all" || f.properties.status === filter;
+      return matchSearch && matchFilter;
+    });
+    return { ...mergedData, features };
+  }, [mergedData, search, filter]);
 
-        return {
-          ...f,
-          properties: {
-            ...f.properties,
-            status:
-              related.length === 0
-                ? "pending"
-                : getStatusFromChildren(related),
-            progress: getProgress(related)
-          },
-        };
-      }
+  const handleFeatureClick = useCallback((feature) => {
+    setSelectedId(feature.id);
+    if (layer === "division") setLayer("district");
+    else if (layer === "district") setLayer("upazila");
+  }, [layer]);
 
-      return f;
-    }),
-  };
-  // 🎯 Final data (search zoom)
-  const finalFilteredData = {
-    ...mergedData,
-    features: mergedData.features.filter((f) => {
-      if (filter === "all") return true;
-      return f.properties.status === filter;
-    }),
-  };
+  const goBack = useCallback(() => {
+    if (layer === "upazila") setLayer("district");
+    else if (layer === "district") setLayer("division");
+    setSelectedId(null);
+  }, [layer]);
 
-  const finalData =
-    finalFilteredData.features.length === 1
-      ? finalFilteredData
-      : finalFilteredData;
-  // ✅ RETURN UI (THIS WAS MISSING ❌)
+  const goToDivision = useCallback(() => {
+    setLayer("division");
+    setSelectedId(null);
+  }, []);
+
+  const handleLayerChange = useCallback((newLayer) => {
+    setLayer(newLayer);
+    setSelectedId(null);
+  }, []);
+
   return (
-    <div style={{ display: "flex" }}>
+    <div className="app-shell">
+      {/* Mobile-only hamburger */}
+      <button
+        className="mobile-menu-btn"
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Open sidebar"
+      >
+        ☰
+      </button>
+
+      {/* Mobile backdrop */}
+      <div
+        className={`sidebar-backdrop${sidebarOpen ? " open" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Desktop collapse tab — sits on the seam between sidebar and map */}
+      <button
+        className={`collapse-tab${sidebarCollapsed ? " is-collapsed" : ""}`}
+        onClick={() => setSidebarCollapsed((v) => !v)}
+        aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {sidebarCollapsed ? "›" : "‹"}
+      </button>
+
       <Sidebar
+        isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
+        onClose={() => setSidebarOpen(false)}
         data={mergedData.features}
-        setFilter={setFilter}
         filter={filter}
+        setFilter={setFilter}
+        search={search}
         onSearch={setSearch}
-        setLayer={setLayer}
         layer={layer}
+        setLayer={handleLayerChange}
+        onBack={goBack}
+        onBackToDivision={goToDivision}
         showDivision={showDivision}
         setShowDivision={setShowDivision}
         showDistrict={showDistrict}
@@ -171,21 +147,14 @@ export default function App() {
         setShowUpazila={setShowUpazila}
       />
 
-      <div style={{ flex: 1 }}>
+      <div className="map-wrapper">
         <MapView
           geojson={finalData}
           search={search}
+          layer={layer}
+          filter={filter}
           selectedId={selectedId}
-          onFeatureClick={(feature) => {
-            setSelectedId(feature.id);
-            if (layer === "division") {
-              setSelectedFeature(feature);
-              setLayer("district");
-            } else if (layer === "district") {
-              setSelectedFeature(feature);
-              setLayer("upazila");
-            }
-          }}
+          onFeatureClick={handleFeatureClick}
           showDivision={showDivision}
           showDistrict={showDistrict}
           showUpazila={showUpazila}

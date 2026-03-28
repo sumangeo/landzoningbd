@@ -73,6 +73,7 @@ function WebViewTouchFix() {
 // ─── GeoJSON Layer with search-aware highlighting ────────────────────────────
 
 function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
+  const map = useMap();
   const selectedRef = useRef(selectedId);
   const onClickRef = useRef(onFeatureClick);
   const searchRef = useRef(search);
@@ -98,6 +99,24 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
       entries.forEach(({ lyr, feature }) => {
         try { lyr.setStyle(featureStyle(feature, selectedRef.current)); } catch { }
       });
+
+      // Reset map view to full bounds when clearing search
+      const latLngs = [];
+      if (geojson && geojson.features) {
+        geojson.features.forEach((f) => {
+          if (!f.geometry?.coordinates) return;
+          const rings =
+            f.geometry.type === "Polygon"
+              ? [f.geometry.coordinates[0]]
+              : f.geometry.coordinates.map((p) => p[0]);
+          rings.forEach((ring) => ring.forEach(([lng, lat]) => latLngs.push([lat, lng])));
+        });
+        if (latLngs.length) {
+          try {
+            map.fitBounds(latLngs, { padding: [4, 4], animate: true, duration: 0.5 });
+          } catch { }
+        }
+      }
       return;
     }
 

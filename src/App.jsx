@@ -23,19 +23,19 @@ const getProgress = (list) => {
 };
 
 export default function App() {
-  const [filter,       setFilter]       = useState("all");
-  const [search,       setSearch]       = useState("");
-  const [layer,        setLayer]        = useState("upazila");
-  const [selectedId,   setSelectedId]   = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [layer, setLayer] = useState("upazila");
+  const [selectedId, setSelectedId] = useState(null);
   const [firebaseData, setFirebaseData] = useState([]);
   // Mobile: drawer open/close
-  const [sidebarOpen,      setSidebarOpen]      = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   // Desktop: sidebar collapsed/expanded
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [showDivision, setShowDivision] = useState(true);
   const [showDistrict, setShowDistrict] = useState(true);
-  const [showUpazila,  setShowUpazila]  = useState(true);
+  const [showUpazila, setShowUpazila] = useState(true);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "upazila_status"), (snap) => {
@@ -71,13 +71,13 @@ export default function App() {
 
   const finalData = useMemo(() => {
     const features = mergedData.features.filter((f) => {
-      const name = (f.properties.name || f.properties.shapeName || "").toLowerCase();
-      const matchSearch = !search || name.includes(search.toLowerCase());
       const matchFilter = filter === "all" || f.properties.status === filter;
-      return matchSearch && matchFilter;
+      // We pass all items to the map (ignoring search filter here),
+      // because MapView uses the `search` prop to dim/highlight them directly.
+      return matchFilter;
     });
     return { ...mergedData, features };
-  }, [mergedData, search, filter]);
+  }, [mergedData, filter]);
 
   const handleFeatureClick = useCallback((feature) => {
     setSelectedId(feature.id);

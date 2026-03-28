@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import divisionGeo from "../data/division.json";
 import districtGeo from "../data/district.json";
@@ -54,7 +54,7 @@ function ZoomToFeature({ geojson, layer }) {
           : f.geometry.coordinates.map((p) => p[0]);
       rings.forEach((ring) => ring.forEach(([lng, lat]) => latLngs.push([lat, lng])));
     });
-    if (latLngs.length) map.fitBounds(latLngs, { padding: [24, 24] });
+    if (latLngs.length) map.fitBounds(latLngs, { padding: [4, 4] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geojson, layer]);
   return null;
@@ -281,7 +281,7 @@ export default function MapView({
         zoom={7}
         style={{ width: "100%", height: "100%" }}
         tap={false}
-        zoomControl={true}
+        zoomControl={false}
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -289,6 +289,7 @@ export default function MapView({
           detectRetina={true}
         />
 
+        <ZoomControl position="bottomright" />
         <WebViewTouchFix />
         <ZoomToFeature geojson={geojson} layer={layer} />
         <StaticOutlines showDivision={showDivision} showDistrict={showDistrict} />

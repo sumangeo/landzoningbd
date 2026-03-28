@@ -201,6 +201,13 @@ body {
   bottom: calc(36px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+/* Push Leaflet top controls down on mobile to align with mobile hamburger btn */
+@media (max-width: 768px) {
+  .leaflet-top {
+    top: 54px !important;
+  }
+}
+
 /* ── Map Legend ── */
 .map-legend {
   position: absolute;

@@ -81,16 +81,16 @@ export default function Sidebar({
         {/* OVERALL PROGRESS RING */}
         <div className="sb-overall">
           <svg className="sb-ring" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="32" fill="none" stroke="#1e293b" strokeWidth="7" />
+            <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border-hi)" strokeWidth="7" />
             <circle
               cx="40" cy="40" r="32" fill="none"
-              stroke="#10b981" strokeWidth="7"
+              stroke="var(--done)" strokeWidth="7"
               strokeDasharray={`${overallPct * 2.01} 201`}
               strokeLinecap="round"
               transform="rotate(-90 40 40)"
             />
-            <text x="40" y="37" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">{overallPct}%</text>
-            <text x="40" y="52" textAnchor="middle" fill="#64748b" fontSize="7">complete</text>
+            <text x="40" y="37" textAnchor="middle" fill="var(--text)" fontSize="14" fontWeight="700">{overallPct}%</text>
+            <text x="40" y="52" textAnchor="middle" fill="var(--text-muted)" fontSize="7">complete</text>
           </svg>
           <div className="sb-overall-stats">
             <Stat value={done}    label="Done"    color={STATUS_COLORS.done}    />

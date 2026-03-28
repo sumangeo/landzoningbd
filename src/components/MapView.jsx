@@ -21,7 +21,7 @@ import districtGeo from "../data/district.json";
 const getName = (p) => p?.name || p?.shapeName || p?.upazila || p?.ADM3_EN || "Unknown";
 
 const STATUS_COLORS = {
-  done:    "#059669",   // emerald — strong on light map
+  done: "#059669",   // emerald — strong on light map
   ongoing: "#d97706",   // amber
   pending: "#94a3b8",   // lighter slate — more visible on CARTO light
 };
@@ -32,9 +32,9 @@ const featureStyle = (feature, selectedId) => {
   const status = feature.properties?.status || "pending";
   const isSelected = feature.id === selectedId;
   return {
-    color:       isSelected ? "#1e293b" : "#475569",
-    weight:      isSelected ? 2.5 : 0.7,
-    fillColor:   STATUS_COLORS[status] || STATUS_COLORS.pending,
+    color: isSelected ? "#1e293b" : "#475569",
+    weight: isSelected ? 2.5 : 0.7,
+    fillColor: STATUS_COLORS[status] || STATUS_COLORS.pending,
     fillOpacity: isSelected ? 0.88 : 0.55,
   };
 };
@@ -55,7 +55,7 @@ function ZoomToFeature({ geojson, layer }) {
       rings.forEach((ring) => ring.forEach(([lng, lat]) => latLngs.push([lat, lng])));
     });
     if (latLngs.length) map.fitBounds(latLngs, { padding: [24, 24] });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geojson, layer]);
   return null;
 }
@@ -73,13 +73,15 @@ function WebViewTouchFix() {
 // ─── GeoJSON Layer with search-aware highlighting ────────────────────────────
 
 function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
-  const selectedRef  = useRef(selectedId);
-  const onClickRef   = useRef(onFeatureClick);
+  const selectedRef = useRef(selectedId);
+  const onClickRef = useRef(onFeatureClick);
+  const searchRef = useRef(search);
   // KEY FIX ②③: store every Leaflet layer instance as it mounts
-  const layerMapRef  = useRef({});
+  const layerMapRef = useRef({});
 
-  useEffect(() => { selectedRef.current = selectedId;  }, [selectedId]);
-  useEffect(() => { onClickRef.current  = onFeatureClick; }, [onFeatureClick]);
+  useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { onClickRef.current = onFeatureClick; }, [onFeatureClick]);
+  useEffect(() => { searchRef.current = search; }, [search]);
 
   // ── KEY FIX ①②③: react to search changes ──────────────────────────────
   useEffect(() => {
@@ -88,13 +90,13 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
 
     // Always close ALL open popups first (FIX ② — clears stale popup)
     entries.forEach(({ lyr }) => {
-      try { lyr.closePopup(); } catch {}
+      try { lyr.closePopup(); } catch { }
     });
 
     if (!search.trim()) {
       // Restore every feature to its default style (FIX ③)
       entries.forEach(({ lyr, feature }) => {
-        try { lyr.setStyle(featureStyle(feature, selectedRef.current)); } catch {}
+        try { lyr.setStyle(featureStyle(feature, selectedRef.current)); } catch { }
       });
       return;
     }
@@ -110,14 +112,14 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
         // FIX ①: highlight matched feature with blue glow
         try {
           lyr.setStyle({
-            color:       "#fff",
-            weight:      2.5,
-            fillColor:   SEARCH_HIGHLIGHT_COLOR,
+            color: "#fff",
+            weight: 2.5,
+            fillColor: SEARCH_HIGHLIGHT_COLOR,
             fillOpacity: 0.88,
           });
           lyr.bringToFront();
           lyr.openPopup();
-        } catch {}
+        } catch { }
         if (!firstMatchLyr) firstMatchLyr = lyr;
       } else {
         // FIX ①: dim non-matching features
@@ -127,7 +129,7 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
             fillOpacity: 0.15,
             weight: 0.4,
           });
-        } catch {}
+        } catch { }
       }
     });
 
@@ -141,10 +143,10 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
             animate: true,
             duration: 0.5,
           });
-        } catch {}
+        } catch { }
       }, 80);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   // ── onEachFeature: bind popup, store layer ref, add events ───────────────
@@ -153,11 +155,24 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
     const status = feature.properties?.status || "pending";
     const progress = feature.properties?.progress ?? 0;
 
+    // Extract district and division context
+    const district = feature.properties?.district;
+    const division = feature.properties?.division;
+    let subTextHtml = "";
+    if (district && division) {
+      subTextHtml = `<div class="map-popup-sub">${district} District, ${division} Division</div>`;
+    } else if (division) {
+      subTextHtml = `<div class="map-popup-sub">${division} Division</div>`;
+    } else if (district) {
+      subTextHtml = `<div class="map-popup-sub">${district} District</div>`;
+    }
+
     // Rich popup content
     const statusColor = STATUS_COLORS[status];
     lyr.bindPopup(
       `<div class="map-popup">
         <div class="map-popup-name">${name}</div>
+        ${subTextHtml}
         <div class="map-popup-meta">
           <span class="map-popup-dot" style="background:${statusColor}"></span>
           <span class="map-popup-status">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
@@ -180,21 +195,34 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
     });
 
     lyr.on("mouseout", (e) => {
-      // Only reset if not a current search match
-      const currentSearch = search; // captured at bind time — OK, effect re-runs on search change
+      const currentSearch = searchRef.current || "";
       const isSearchMatch = currentSearch.trim() && name.toLowerCase().includes(currentSearch.toLowerCase().trim());
-      if (!isSearchMatch) {
+
+      if (isSearchMatch) {
+        e.target.setStyle({
+          color: "#fff",
+          weight: 2.5,
+          fillColor: SEARCH_HIGHLIGHT_COLOR,
+          fillOpacity: 0.88,
+        });
+      } else if (currentSearch.trim()) {
+        e.target.setStyle({
+          ...featureStyle(feature, selectedRef.current),
+          fillOpacity: 0.15,
+          weight: 0.4,
+        });
+      } else {
         e.target.setStyle(featureStyle(feature, selectedRef.current));
       }
     });
 
     lyr.on("click", (e) => {
-      try { e.target._map.fitBounds(e.target.getBounds(), { padding: [40, 40] }); } catch {}
+      try { e.target._map.fitBounds(e.target.getBounds(), { padding: [40, 40] }); } catch { }
       onClickRef.current?.(feature);
     });
-  // search is intentionally NOT in deps — event handlers are bound once on mount.
-  // The search-driven styling is handled by the useEffect above.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // search is intentionally NOT in deps — event handlers are bound once on mount.
+    // The search-driven styling is handled by the useEffect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -241,7 +269,7 @@ export default function MapView({
   showUpazila,
 }) {
   const totalFeatures = geojson?.features?.length ?? 0;
-  const done    = geojson?.features?.filter((f) => f.properties?.status === "done").length    ?? 0;
+  const done = geojson?.features?.filter((f) => f.properties?.status === "done").length ?? 0;
   const ongoing = geojson?.features?.filter((f) => f.properties?.status === "ongoing").length ?? 0;
   const pending = geojson?.features?.filter((f) => f.properties?.status === "pending").length ?? 0;
   const pct = totalFeatures ? Math.round((done / totalFeatures) * 100) : 0;
@@ -280,9 +308,9 @@ export default function MapView({
       <div className="map-legend">
         <div className="map-legend-header">Legend</div>
         {[
-          { label: "Done",    color: STATUS_COLORS.done    },
-          { label: "Ongoing", color: STATUS_COLORS.ongoing  },
-          { label: "Pending", color: STATUS_COLORS.pending  },
+          { label: "Done", color: STATUS_COLORS.done },
+          { label: "Ongoing", color: STATUS_COLORS.ongoing },
+          { label: "Pending", color: STATUS_COLORS.pending },
         ].map(({ label, color }) => (
           <div key={label} className="legend-row">
             <div className="legend-swatch" style={{ background: color }} />

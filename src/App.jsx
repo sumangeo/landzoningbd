@@ -59,7 +59,9 @@ export default function App() {
       }
       if (layer === "district") {
         const related = firebaseData.filter((d) => d.district === name);
-        return { ...f, properties: { ...f.properties, status: getStatusFromChildren(related), progress: getProgress(related) } };
+        const childMatch = upazilaGeo.features.find((u) => (u.properties.district || "") === name);
+        const divInfo = childMatch ? childMatch.properties.division : "";
+        return { ...f, properties: { ...f.properties, status: getStatusFromChildren(related), progress: getProgress(related), division: divInfo } };
       }
       const related = firebaseData.filter((d) => d.division === name);
       return { ...f, properties: { ...f.properties, status: getStatusFromChildren(related), progress: getProgress(related) } };

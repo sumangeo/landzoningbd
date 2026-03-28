@@ -10,7 +10,7 @@ import { useState, useEffect, useRef } from "react";
 const getName = (p) => p?.name || p?.shapeName || "—";
 
 const STATUS_COLORS = {
-  done:    "#10b981",
+  done: "#10b981",
   ongoing: "#f59e0b",
   pending: "#64748b",
 };
@@ -18,7 +18,7 @@ const STATUS_COLORS = {
 const LAYER_LABELS = {
   division: "Division",
   district: "District",
-  upazila:  "Upazila",
+  upazila: "Upazila",
 };
 
 export default function Sidebar({
@@ -40,6 +40,8 @@ export default function Sidebar({
   setShowDistrict,
   showUpazila,
   setShowUpazila,
+  isAdmin,
+  setIsAdmin,
 }) {
   const [inputValue, setInputValue] = useState(search);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -112,17 +114,17 @@ export default function Sidebar({
     }
   };
 
-  const done    = data.filter((d) => d.properties?.status === "done").length;
+  const done = data.filter((d) => d.properties?.status === "done").length;
   const ongoing = data.filter((d) => d.properties?.status === "ongoing").length;
   const pending = data.filter((d) => d.properties?.status === "pending").length;
-  const total   = data.length;
+  const total = data.length;
   const overallPct = total ? Math.round((done / total) * 100) : 0;
 
   const searchCount = search
     ? data.filter((f) => {
-        const name = (f.properties?.name || f.properties?.shapeName || "").toLowerCase();
-        return name.includes(search.toLowerCase());
-      }).length
+      const name = (f.properties?.name || f.properties?.shapeName || "").toLowerCase();
+      return name.includes(search.toLowerCase());
+    }).length
     : null;
 
   const classNames = [
@@ -166,7 +168,7 @@ export default function Sidebar({
             <text x="40" y="52" textAnchor="middle" fill="var(--text-muted)" fontSize="7">complete</text>
           </svg>
           <div className="sb-overall-stats">
-            <Stat value={done}    label="Done"    color={STATUS_COLORS.done}    />
+            <Stat value={done} label="Done" color={STATUS_COLORS.done} />
             <Stat value={ongoing} label="Ongoing" color={STATUS_COLORS.ongoing} />
             <Stat value={pending} label="Pending" color={STATUS_COLORS.pending} />
           </div>
@@ -214,7 +216,7 @@ export default function Sidebar({
           <div className="sb-toggles">
             <Toggle label="Division Borders" color="#60a5fa" checked={showDivision} onChange={setShowDivision} />
             <Toggle label="District Borders" color="#a78bfa" checked={showDistrict} onChange={setShowDistrict} />
-            <Toggle label="Upazila Fill"     color="#34d399" checked={showUpazila}  onChange={setShowUpazila}  />
+            <Toggle label="Upazila Fill" color="#34d399" checked={showUpazila} onChange={setShowUpazila} />
           </div>
         </Section>
 
@@ -259,8 +261,8 @@ export default function Sidebar({
         {/* STATUS FILTER */}
         <Section label="Filter by Status">
           <div className="sb-filters">
-            <FilterPill label="All"     value="all"     current={filter} onSelect={setFilter} color="#38bdf8" />
-            <FilterPill label="Done"    value="done"    current={filter} onSelect={setFilter} color={STATUS_COLORS.done} />
+            <FilterPill label="All" value="all" current={filter} onSelect={setFilter} color="#38bdf8" />
+            <FilterPill label="Done" value="done" current={filter} onSelect={setFilter} color={STATUS_COLORS.done} />
             <FilterPill label="Ongoing" value="ongoing" current={filter} onSelect={setFilter} color={STATUS_COLORS.ongoing} />
             <FilterPill label="Pending" value="pending" current={filter} onSelect={setFilter} color={STATUS_COLORS.pending} />
           </div>
@@ -305,8 +307,32 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="sb-footer">
+      <div className="sb-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>Land Zoning Monitoring · Bangladesh</span>
+        <button
+          className="sb-admin-btn"
+          onClick={() => {
+            if (isAdmin) {
+              setIsAdmin(false);
+            } else {
+              const pin = prompt("Enter Admin PIN:");
+              if (pin === "1234") setIsAdmin(true);
+              else if (pin) alert("Incorrect PIN");
+            }
+          }}
+          style={{
+            background: isAdmin ? "var(--done)" : "transparent",
+            border: "1px solid var(--border-hi)",
+            color: isAdmin ? "#fff" : "var(--text-muted)",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+        >
+          {isAdmin ? "Admin Active" : "Admin Login"}
+        </button>
       </div>
     </aside>
   );

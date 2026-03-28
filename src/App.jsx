@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc } from "firebase/firestore";
 import MapView from "./components/MapView";
 import Sidebar from "./components/Sidebar";
 import { db } from "./services/firebase";
@@ -28,6 +28,9 @@ export default function App() {
   const [layer, setLayer] = useState("upazila");
   const [selectedId, setSelectedId] = useState(null);
   const [firebaseData, setFirebaseData] = useState([]);
+  // Admin toggle
+  const [isAdmin, setIsAdmin] = useState(false);
+
   // Mobile: drawer open/close
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Desktop: sidebar collapsed/expanded
@@ -36,6 +39,15 @@ export default function App() {
   const [showDivision, setShowDivision] = useState(true);
   const [showDistrict, setShowDistrict] = useState(true);
   const [showUpazila, setShowUpazila] = useState(true);
+
+  const updateUpazilaStatus = useCallback(async (id, newStatus) => {
+    if (!isAdmin) return;
+    try {
+      await setDoc(doc(db, "upazila_status", id), { status: newStatus }, { merge: true });
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "upazila_status"), (snap) => {
@@ -147,9 +159,11 @@ export default function App() {
         setShowDistrict={setShowDistrict}
         showUpazila={showUpazila}
         setShowUpazila={setShowUpazila}
+        isAdmin={isAdmin}
+        setIsAdmin={setIsAdmin}
       />
 
-      <div className="map-wrapper">
+      <div className={`map-wrapper ${isAdmin ? "is-admin-mode" : ""}`}>
         <MapView
           geojson={finalData}
           search={search}
@@ -160,6 +174,8 @@ export default function App() {
           showDivision={showDivision}
           showDistrict={showDistrict}
           showUpazila={showUpazila}
+          isAdmin={isAdmin}
+          onStatusUpdate={updateUpazilaStatus}
         />
       </div>
     </div>

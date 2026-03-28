@@ -200,6 +200,11 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
         <div class="map-popup-bar-track">
           <div class="map-popup-bar-fill" style="width:${progress}%;background:${statusColor}"></div>
         </div>
+        <div class="admin-controls">
+          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="done">Done</button>
+          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="ongoing">Ongoing</button>
+          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="pending">Pending</button>
+        </div>
       </div>`,
       { closeButton: false, className: "custom-popup", maxWidth: 220 }
     );
@@ -286,12 +291,30 @@ export default function MapView({
   showDivision,
   showDistrict,
   showUpazila,
+  isAdmin,
+  onStatusUpdate,
 }) {
   const totalFeatures = geojson?.features?.length ?? 0;
   const done = geojson?.features?.filter((f) => f.properties?.status === "done").length ?? 0;
   const ongoing = geojson?.features?.filter((f) => f.properties?.status === "ongoing").length ?? 0;
   const pending = geojson?.features?.filter((f) => f.properties?.status === "pending").length ?? 0;
   const pct = totalFeatures ? Math.round((done / totalFeatures) * 100) : 0;
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const handlePopupClick = (e) => {
+      const btn = e.target.closest('.update-status-btn');
+      if (btn) {
+        const id = btn.dataset.id;
+        const status = btn.dataset.status;
+        if (id && status && onStatusUpdate) {
+          onStatusUpdate(id, status);
+        }
+      }
+    };
+    document.addEventListener('click', handlePopupClick);
+    return () => document.removeEventListener('click', handlePopupClick);
+  }, [isAdmin, onStatusUpdate]);
 
   return (
     <>

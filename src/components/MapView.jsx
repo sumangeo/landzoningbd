@@ -289,7 +289,7 @@ export default function MapView({
           detectRetina={true}
         />
 
-        <ZoomControl position="bottomright" />
+        <ZoomControl position="topright" />
         <WebViewTouchFix />
         <ZoomToFeature geojson={geojson} layer={layer} />
         <StaticOutlines showDivision={showDivision} showDistrict={showDistrict} />

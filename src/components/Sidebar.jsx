@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from "react";
+
 /**
  * Sidebar.jsx
  * Modern GIS control panel sidebar.
@@ -39,6 +41,77 @@ export default function Sidebar({
   showUpazila,
   setShowUpazila,
 }) {
+  const [inputValue, setInputValue] = useState(search);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const searchWrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!search && inputValue) {
+      setInputValue("");
+    }
+  }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearch(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue, onSearch]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+    setShowSuggestions(true);
+    setActiveIndex(-1);
+  };
+
+  const handleClear = () => {
+    setInputValue("");
+    setShowSuggestions(false);
+    onSearch("");
+  };
+
+  const handleSuggestionClick = (name) => {
+    setInputValue(name);
+    setShowSuggestions(false);
+    setActiveIndex(-1);
+    onSearch(name);
+  };
+
+  const activeSuggestions = inputValue && showSuggestions
+    ? data.filter((f) => getName(f.properties).toLowerCase().includes(inputValue.toLowerCase()))
+    : [];
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || activeSuggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev < activeSuggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < activeSuggestions.length) {
+        handleSuggestionClick(getName(activeSuggestions[activeIndex].properties));
+      } else {
+        setShowSuggestions(false);
+      }
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
   const done    = data.filter((d) => d.properties?.status === "done").length;
   const ongoing = data.filter((d) => d.properties?.status === "ongoing").length;
   const pending = data.filter((d) => d.properties?.status === "pending").length;
@@ -149,18 +222,36 @@ export default function Sidebar({
 
         {/* SEARCH */}
         <Section label={searchCount !== null ? `Search — ${searchCount} match${searchCount !== 1 ? "es" : ""}` : "Search"}>
-          <div className="sb-search-wrap">
+          <div className="sb-search-wrap" ref={searchWrapRef}>
             <span className="sb-search-icon">⌕</span>
             <input
               type="search"
               className="sb-search"
               placeholder={`Search ${LAYER_LABELS[layer]}…`}
-              value={search}
-              onChange={(e) => onSearch(e.target.value)}
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setShowSuggestions(true)}
               style={{ fontSize: "16px" }} /* prevent iOS zoom */
             />
-            {search && (
-              <button className="sb-search-clear" onClick={() => onSearch("")} aria-label="Clear search">✕</button>
+            {inputValue && (
+              <button className="sb-search-clear" onClick={handleClear} aria-label="Clear search">✕</button>
+            )}
+            {showSuggestions && activeSuggestions.length > 0 && (
+              <ul className="sb-autocomplete-dropdown">
+                {activeSuggestions.map((f, i) => {
+                  const name = getName(f.properties);
+                  return (
+                    <li
+                      key={f.id ?? i}
+                      className={`sb-autocomplete-item${i === activeIndex ? " active" : ""}`}
+                      onClick={() => handleSuggestionClick(name)}
+                    >
+                      <HighlightText text={name} highlight={inputValue} />
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
         </Section>
@@ -276,5 +367,21 @@ function FilterPill({ label, value, current, onSelect, color }) {
       {isActive && <span className="sb-pill-dot" style={{ background: color }} />}
       {label}
     </button>
+  );
+}
+
+function HighlightText({ text, highlight }) {
+  if (!highlight) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${highlight})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <span key={i} className="sb-autocomplete-highlight">{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
   );
 }

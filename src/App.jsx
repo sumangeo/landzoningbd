@@ -126,8 +126,14 @@ export default function App() {
 
   return (
     <div className="app-shell">
-
-
+      {/* Mobile top controls — shown only on mobile via CSS */}
+      <div className="mobile-controls-group">
+        <button className="mobile-control-btn" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">☰</button>
+        <div className="mobile-zoom-group">
+          <button className="mobile-control-btn" onClick={handleZoomIn} aria-label="Zoom in">+</button>
+          <button className="mobile-control-btn" onClick={handleZoomOut} aria-label="Zoom out">-</button>
+        </div>
+      </div>
       {/* Mobile backdrop */}
       <div
         className={`sidebar-backdrop${sidebarOpen ? " open" : ""}`}

@@ -268,7 +268,7 @@ body {
   left: 0;
   right: 0;
   z-index: 500;
-  height: calc(36px + var(--sab));
+  height: calc(48px + var(--sab));
   padding-bottom: var(--sab);
   background: rgba(15, 23, 42, 0.9);
   backdrop-filter: blur(8px);
@@ -305,7 +305,44 @@ body {
 }
 
 /* ── Mobile Btn & Desktop Collapse ── */
-/* Mobile controls removed as requested */
+.mobile-controls-group {
+  display: none;
+  position: fixed;
+  top: calc(70px + var(--sat));
+  left: 20px;
+  right: 20px;
+  justify-content: space-between;
+  z-index: 1050;
+  pointer-events: none;
+}
+
+.mobile-zoom-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-control-btn {
+  pointer-events: auto;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.mobile-control-btn:active {
+  transform: scale(0.95);
+  background: var(--bg-card);
+}
 
 .collapse-tab {
   position: fixed;
@@ -979,7 +1016,7 @@ body {
   }
 
   .map-legend {
-    bottom: calc(48px + var(--sab));
+    bottom: calc(64px + var(--sab));
     right: 14px;
   }
 
@@ -1012,7 +1049,7 @@ body {
       height: 60px;
     }
     .mobile-controls-group {
-      bottom: calc(44px + var(--sab));
+      top: calc(20px + var(--sat));
     }
     .mobile-control-btn {
       width: 36px;

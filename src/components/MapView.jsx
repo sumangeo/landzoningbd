@@ -168,6 +168,27 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
+  // ── KEY FIX ④: React to prop changes (geojson/selectedId) ──────────────────
+  // Leaflet's GeoJSON component doesn't re-style on data update. We fix it here.
+  useEffect(() => {
+    const entries = Object.values(layerMapRef.current);
+    if (!entries.length) return;
+
+    geojson.features.forEach((f) => {
+      const name = getName(f.properties);
+      const key = f.id ?? name;
+      const entry = layerMapRef.current[key];
+      if (entry) {
+        // Only update style if we're NOT in a search highlight mode
+        if (!search.trim()) {
+          try { entry.lyr.setStyle(featureStyle(f, selectedId)); } catch { }
+        }
+        // Always update the stored feature object
+        entry.feature = f;
+      }
+    });
+  }, [geojson, selectedId, search]);
+
   // ── onEachFeature: bind popup, store layer ref, add events ───────────────
   const onEachFeature = useCallback((feature, lyr) => {
     const name = getName(feature.properties);

@@ -30,6 +30,8 @@ export default function App() {
   const [firebaseData, setFirebaseData] = useState([]);
   // Admin toggle
   const [isAdmin, setIsAdmin] = useState(false);
+  // About Page toggle
+  const [showAbout, setShowAbout] = useState(false);
 
   // Unified collapse state — starts collapsed on mobile, expanded on desktop
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth < 768);
@@ -144,6 +146,7 @@ export default function App() {
         isOpen={!sidebarCollapsed}
         isCollapsed={sidebarCollapsed}
         onClose={() => setSidebarCollapsed(true)}
+        onAboutClick={() => setShowAbout(true)}
         data={mergedData.features}
         filter={filter}
         setFilter={setFilter}
@@ -180,6 +183,44 @@ export default function App() {
           onMapReady={setMap}
         />
       </div>
+
+      {showAbout && (
+        <div className="about-overlay" onClick={() => setShowAbout(false)}>
+          <div className="about-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="about-close" onClick={() => setShowAbout(false)}>✕</button>
+            <div className="about-header">
+              <div className="about-logo">🗺</div>
+              <h2 className="about-title">Landzoning Project</h2>
+              <p className="about-subtitle">Ministry of Land, Bangladesh</p>
+            </div>
+            <div className="about-content">
+              <h3>Objective</h3>
+              <p>To monitor and manage Landzoning data, zoning report and track progress.</p>
+
+              <h3>Project Scope</h3>
+              <p>Structured land usage development and real-time tracking of provision progress for Upazilas nationwide across all Divisions and Districts.</p>
+
+              <div className="about-stats">
+                <div className="about-stat-box">
+                  <div className="about-stat-num">495(507)</div>
+                  <div className="about-stat-txt">Upazilas</div>
+                </div>
+                <div className="about-stat-box">
+                  <div className="about-stat-num">64</div>
+                  <div className="about-stat-txt">Districts</div>
+                </div>
+                <div className="about-stat-box">
+                  <div className="about-stat-num">8</div>
+                  <div className="about-stat-txt">Divisions</div>
+                </div>
+              </div>
+            </div>
+            <div className="about-footer">
+              © 2026 Suman, LZ
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,6 +43,7 @@ export default function Sidebar({
   isAdmin,
   setIsAdmin,
   onStatusUpdate,
+  onAboutClick,
 }) {
   const [inputValue, setInputValue] = useState(search);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -358,8 +359,8 @@ export default function Sidebar({
       {/* Footer */}
       <footer className="sb-footer">
         {!isAuthenticating ? (
-          <>
-            <span>Land Zoning Monitoring · Bangladesh</span>
+          <div style={{ display: "flex", gap: "8px", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+            <button className="sb-about-btn" onClick={onAboutClick}>About</button>
             <button
               className={`sb-admin-btn${isAdmin ? " active" : ""}`}
               onClick={() => {
@@ -373,7 +374,7 @@ export default function Sidebar({
             >
               {isAdmin ? "Admin Active" : "Admin Login"}
             </button>
-          </>
+          </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
             <input

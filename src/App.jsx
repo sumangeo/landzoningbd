@@ -36,6 +36,17 @@ export default function App() {
   // Desktop: sidebar collapsed/expanded
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Map Instance
+  const [map, setMap] = useState(null);
+
+  const handleZoomIn = useCallback(() => {
+    if (map) map.zoomIn();
+  }, [map]);
+
+  const handleZoomOut = useCallback(() => {
+    if (map) map.zoomOut();
+  }, [map]);
+
   const [showDivision, setShowDivision] = useState(true);
   const [showDistrict, setShowDistrict] = useState(true);
   const [showUpazila, setShowUpazila] = useState(true);
@@ -115,14 +126,32 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Mobile-only hamburger */}
-      <button
-        className="mobile-menu-btn"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Open sidebar"
-      >
-        ☰
-      </button>
+      {/* New: Floating Mobile Controls Group (Hamburger + Zoom) */}
+      <div className="mobile-controls-group">
+        <button
+          className="mobile-control-btn main"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open sidebar"
+        >
+          ☰
+        </button>
+        <div className="mobile-zoom-group">
+          <button
+            className="mobile-control-btn zoom"
+            onClick={handleZoomIn}
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <button
+            className="mobile-control-btn zoom"
+            onClick={handleZoomOut}
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+        </div>
+      </div>
 
       {/* Mobile backdrop */}
       <div
@@ -177,6 +206,7 @@ export default function App() {
           showUpazila={showUpazila}
           isAdmin={isAdmin}
           onStatusUpdate={updateUpazilaStatus}
+          onMapReady={setMap}
         />
       </div>
     </div>

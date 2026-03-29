@@ -281,6 +281,14 @@ function StaticOutlines({ showDivision, showDistrict }) {
   );
 }
 
+function CaptureMap({ onMapReady }) {
+  const map = useMap();
+  useEffect(() => {
+    if (onMapReady) onMapReady(map);
+  }, [map, onMapReady]);
+  return null;
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function MapView({
@@ -295,6 +303,7 @@ export default function MapView({
   showUpazila,
   isAdmin,
   onStatusUpdate,
+  onMapReady,
 }) {
   const totalFeatures = geojson?.features?.length ?? 0;
   const done = geojson?.features?.filter((f) => f.properties?.status === "done").length ?? 0;
@@ -334,7 +343,7 @@ export default function MapView({
           zoomOffset={-1}
         />
 
-        <ZoomControl position="topright" />
+        <CaptureMap onMapReady={onMapReady} />
         <WebViewTouchFix />
         <ZoomToFeature geojson={geojson} layer={layer} />
         <StaticOutlines showDivision={showDivision} showDistrict={showDistrict} />

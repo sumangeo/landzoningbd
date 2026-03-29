@@ -361,7 +361,7 @@ export default function Sidebar({
           <>
             <span>Land Zoning Monitoring · Bangladesh</span>
             <button
-              className="sb-admin-btn"
+              className={`sb-admin-btn${isAdmin ? " active" : ""}`}
               onClick={() => {
                 if (isAdmin) {
                   setIsAdmin(false);
@@ -369,17 +369,6 @@ export default function Sidebar({
                   setIsAuthenticating(true);
                   setPin("");
                 }
-              }}
-              style={{
-                background: isAdmin ? "var(--done)" : "transparent",
-                border: "1px solid var(--border-hi)",
-                color: isAdmin ? "#fff" : "var(--text-muted)",
-                padding: "4px 10px",
-                borderRadius: "4px",
-                fontSize: "12px",
-                fontWeight: "700",
-                cursor: "pointer",
-                transition: "all 0.2s"
               }}
             >
               {isAdmin ? "Admin Active" : "Admin Login"}
@@ -399,24 +388,16 @@ export default function Sidebar({
                 if (e.key === "Enter") handleLogin();
                 if (e.key === "Escape") setIsAuthenticating(false);
               }}
-              style={{
-                flex: 1,
-                background: "var(--bg-input)",
-                border: "1px solid var(--accent)",
-                color: "var(--text)",
-                padding: "6px 10px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                outline: "none"
-              }}
+              className="sb-login-input"
+              style={{ flex: 1 }}
             />
             <button
+              className="sb-login-go-btn"
               onClick={handleLogin}
-              style={{ background: "var(--done)", border: "none", color: "#fff", padding: "6px 12px", borderRadius: "4px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
             >GO</button>
             <button
+              className="sb-login-cancel-btn"
               onClick={() => setIsAuthenticating(false)}
-              style={{ background: "transparent", border: "1px solid var(--border-hi)", color: "var(--text-muted)", padding: "6px 10px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
             >✕</button>
           </div>
         )}

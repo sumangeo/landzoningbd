@@ -191,7 +191,7 @@ export default function App() {
             <div className="about-header">
               <div className="about-logo">🗺</div>
               <h2 className="about-title">Landzoning Project</h2>
-              <p className="about-subtitle">Ministry of Land, Bangladesh</p>
+              <p className="about-subtitle">Ministry of Land, BD</p>
             </div>
             <div className="about-content">
               <h3>Objective</h3>

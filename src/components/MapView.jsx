@@ -173,6 +173,8 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
     const name = getName(feature.properties);
     const status = feature.properties?.status || "pending";
     const progress = feature.properties?.progress ?? 0;
+    // IMPORTANT FIX: Fallback to name if feature.id is undefined
+    const featureId = feature.id || name;
 
     // Extract district and division context
     const district = feature.properties?.district;
@@ -328,7 +330,8 @@ export default function MapView({
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-          detectRetina={true}
+          tileSize={512}
+          zoomOffset={-1}
         />
 
         <ZoomControl position="topright" />

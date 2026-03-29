@@ -161,6 +161,7 @@ export default function App() {
         setShowUpazila={setShowUpazila}
         isAdmin={isAdmin}
         setIsAdmin={setIsAdmin}
+        onStatusUpdate={updateUpazilaStatus}
       />
 
       <div className={`map-wrapper ${isAdmin ? "is-admin-mode" : ""}`}>

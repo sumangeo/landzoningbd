@@ -42,6 +42,7 @@ export default function Sidebar({
   setShowUpazila,
   isAdmin,
   setIsAdmin,
+  onStatusUpdate,
 }) {
   const [inputValue, setInputValue] = useState(search);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -281,6 +282,8 @@ export default function Sidebar({
                 const name = getName(p);
                 const pct = p.progress ?? 0;
                 const status = p.status || "pending";
+                // Fallback ID to Name so updating works reliably
+                const featureId = f.id || name;
                 return (
                   <div key={f.id ?? i} className="sb-progress-item">
                     <div className="sb-progress-row">
@@ -297,13 +300,45 @@ export default function Sidebar({
                         }}
                       />
                     </div>
+
+                    {/* NEW: Show Admin Action Buttons in Sidebar directly */}
+                    {isAdmin && layer === "upazila" && (
+                      <div className="sb-admin-actions" style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+                        <button
+                          className="sb-admin-action-btn"
+                          style={{
+                            borderColor: STATUS_COLORS.done,
+                            color: status === 'done' ? '#fff' : STATUS_COLORS.done,
+                            background: status === 'done' ? STATUS_COLORS.done : 'transparent'
+                          }}
+                          onClick={() => onStatusUpdate(featureId, "done")}
+                        >Done</button>
+                        <button
+                          className="sb-admin-action-btn"
+                          style={{
+                            borderColor: STATUS_COLORS.ongoing,
+                            color: status === 'ongoing' ? '#fff' : STATUS_COLORS.ongoing,
+                            background: status === 'ongoing' ? STATUS_COLORS.ongoing : 'transparent'
+                          }}
+                          onClick={() => onStatusUpdate(featureId, "ongoing")}
+                        >Ongoing</button>
+                        <button
+                          className="sb-admin-action-btn"
+                          style={{
+                            borderColor: STATUS_COLORS.pending,
+                            color: status === 'pending' ? '#fff' : STATUS_COLORS.pending,
+                            background: status === 'pending' ? STATUS_COLORS.pending : 'transparent'
+                          }}
+                          onClick={() => onStatusUpdate(featureId, "pending")}
+                        >Pending</button>
+                      </div>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
         </Section>
-
       </div>
 
       {/* Footer */}

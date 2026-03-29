@@ -54,7 +54,7 @@
 html,
 body {
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background: var(--bg-deep);
   font-family: var(--font);
@@ -65,7 +65,7 @@ body {
 
 #root {
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -922,7 +922,7 @@ body {
 }
 
 .sb-footer {
-  padding: 14px 20px;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--bg-deep);
   font-size: 10px;
@@ -1028,4 +1028,20 @@ body {
 .update-status-btn[data-status="pending"]:hover {
   color: #64748b;
   border-color: #64748b;
+}
+
+.sb-admin-action-btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sb-admin-action-btn:hover {
+  filter: brightness(1.2);
 }

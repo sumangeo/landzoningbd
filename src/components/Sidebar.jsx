@@ -49,6 +49,20 @@ export default function Sidebar({
   const [activeIndex, setActiveIndex] = useState(-1);
   const searchWrapRef = useRef(null);
 
+  // Admin PIN states
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [pin, setPin] = useState("");
+
+  const handleLogin = () => {
+    if (pin === "1234") {
+      setIsAdmin(true);
+      setIsAuthenticating(false);
+    } else {
+      alert("Incorrect PIN");
+      setPin("");
+    }
+  };
+
   useEffect(() => {
     if (!search && inputValue) {
       setInputValue("");
@@ -342,33 +356,71 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="sb-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>Land Zoning Monitoring · Bangladesh</span>
-        <button
-          className="sb-admin-btn"
-          onClick={() => {
-            if (isAdmin) {
-              setIsAdmin(false);
-            } else {
-              const pin = prompt("Enter Admin PIN:");
-              if (pin === "1234") setIsAdmin(true);
-              else if (pin) alert("Incorrect PIN");
-            }
-          }}
-          style={{
-            background: isAdmin ? "var(--done)" : "transparent",
-            border: "1px solid var(--border-hi)",
-            color: isAdmin ? "#fff" : "var(--text-muted)",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
-            cursor: "pointer",
-            transition: "all 0.2s"
-          }}
-        >
-          {isAdmin ? "Admin Active" : "Admin Login"}
-        </button>
-      </div>
+      <footer className="sb-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "50px" }}>
+        {!isAuthenticating ? (
+          <>
+            <span>Land Zoning Monitoring · Bangladesh</span>
+            <button
+              className="sb-admin-btn"
+              onClick={() => {
+                if (isAdmin) {
+                  setIsAdmin(false);
+                } else {
+                  setIsAuthenticating(true);
+                  setPin("");
+                }
+              }}
+              style={{
+                background: isAdmin ? "var(--done)" : "transparent",
+                border: "1px solid var(--border-hi)",
+                color: isAdmin ? "#fff" : "var(--text-muted)",
+                padding: "4px 10px",
+                borderRadius: "4px",
+                fontSize: "12px",
+                fontWeight: "700",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+            >
+              {isAdmin ? "Admin Active" : "Admin Login"}
+            </button>
+          </>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Enter PIN"
+              autoFocus
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLogin();
+                if (e.key === "Escape") setIsAuthenticating(false);
+              }}
+              style={{
+                flex: 1,
+                background: "var(--bg-input)",
+                border: "1px solid var(--accent)",
+                color: "var(--text)",
+                padding: "6px 10px",
+                borderRadius: "4px",
+                fontSize: "14px",
+                outline: "none"
+              }}
+            />
+            <button
+              onClick={handleLogin}
+              style={{ background: "var(--done)", border: "none", color: "#fff", padding: "6px 12px", borderRadius: "4px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+            >GO</button>
+            <button
+              onClick={() => setIsAuthenticating(false)}
+              style={{ background: "transparent", border: "1px solid var(--border-hi)", color: "var(--text-muted)", padding: "6px 10px", borderRadius: "4px", fontSize: "12px", cursor: "pointer" }}
+            >✕</button>
+          </div>
+        )}
+      </footer>
     </aside>
   );
 }

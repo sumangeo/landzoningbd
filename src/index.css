@@ -304,46 +304,7 @@ body {
   font-style: italic;
 }
 
-/* ── Mobile Btn & Desktop Collapse ── */
-.mobile-controls-group {
-  display: none;
-  position: fixed;
-  top: calc(70px + var(--sat));
-  left: 20px;
-  right: 20px;
-  justify-content: space-between;
-  z-index: 1050;
-  pointer-events: none;
-}
-
-.mobile-zoom-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.mobile-control-btn {
-  pointer-events: auto;
-  width: 44px;
-  height: 44px;
-  background: var(--bg-sidebar);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text);
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-lg);
-  cursor: pointer;
-  transition: all var(--transition);
-}
-
-.mobile-control-btn:active {
-  transform: scale(0.95);
-  background: var(--bg-card);
-}
-
+/* ── Sidebar Collapse Tab ── */
 .collapse-tab {
   position: fixed;
   top: 50%;
@@ -967,12 +928,27 @@ body {
 }
 
 @media (max-width: 768px) {
-  .mobile-controls-group {
+  .collapse-tab {
     display: flex;
+    left: 0;
+    z-index: 1300; /* above sidebar */
+    transition: left var(--transition), transform var(--transition);
   }
 
-  .collapse-tab {
-    display: none;
+  /* When mobile sidebar is open (sidebarCollapsed is false in JSX) */
+  .app-shell:not(:has(.sidebar-backdrop:not(.open))) .collapse-tab {
+    left: 300px; /* aligns with sidebar width */
+  }
+
+  /* Alternatively, since we use the .is-collapsed class on the button itself */
+  .collapse-tab.is-collapsed {
+    left: 0;
+    transform: translate(0, -50%);
+  }
+
+  .collapse-tab:not(.is-collapsed) {
+    left: 300px;
+    transform: translate(-50%, -50%);
   }
 
   .sidebar {
@@ -1048,13 +1024,9 @@ body {
       width: 60px;
       height: 60px;
     }
-    .mobile-controls-group {
-      top: calc(20px + var(--sat));
-    }
-    .mobile-control-btn {
-      width: 36px;
-      height: 36px;
-      font-size: 16px;
+    /* Mobile landscape adjustment */
+    .collapse-tab:not(.is-collapsed) {
+      left: 260px;
     }
   }
 }

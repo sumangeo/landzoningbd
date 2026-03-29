@@ -31,10 +31,8 @@ export default function App() {
   // Admin toggle
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Mobile: drawer open/close
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  // Desktop: sidebar collapsed/expanded
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Unified collapse state — starts collapsed on mobile, expanded on desktop
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth < 768);
 
   // Map Instance
   const [map, setMap] = useState(null);
@@ -126,22 +124,14 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Mobile top controls — shown only on mobile via CSS */}
-      <div className="mobile-controls-group">
-        <button className="mobile-control-btn" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">☰</button>
-        <div className="mobile-zoom-group">
-          <button className="mobile-control-btn" onClick={handleZoomIn} aria-label="Zoom in">+</button>
-          <button className="mobile-control-btn" onClick={handleZoomOut} aria-label="Zoom out">-</button>
-        </div>
-      </div>
       {/* Mobile backdrop */}
       <div
-        className={`sidebar-backdrop${sidebarOpen ? " open" : ""}`}
-        onClick={() => setSidebarOpen(false)}
+        className={`sidebar-backdrop${!sidebarCollapsed ? " open" : ""}`}
+        onClick={() => setSidebarCollapsed(true)}
         aria-hidden="true"
       />
 
-      {/* Desktop collapse tab — sits on the seam between sidebar and map */}
+      {/* Unified collapse tab — sits on the seam between sidebar and map */}
       <button
         className={`collapse-tab${sidebarCollapsed ? " is-collapsed" : ""}`}
         onClick={() => setSidebarCollapsed((v) => !v)}
@@ -151,9 +141,9 @@ export default function App() {
       </button>
 
       <Sidebar
-        isOpen={sidebarOpen}
+        isOpen={!sidebarCollapsed}
         isCollapsed={sidebarCollapsed}
-        onClose={() => setSidebarOpen(false)}
+        onClose={() => setSidebarCollapsed(true)}
         data={mergedData.features}
         filter={filter}
         setFilter={setFilter}

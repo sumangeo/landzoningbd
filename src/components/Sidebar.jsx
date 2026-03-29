@@ -356,7 +356,7 @@ export default function Sidebar({
       </div>
 
       {/* Footer */}
-      <footer className="sb-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "50px" }}>
+      <footer className="sb-footer">
         {!isAuthenticating ? (
           <>
             <span>Land Zoning Monitoring · Bangladesh</span>

@@ -32,7 +32,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Mobile: drawer open/close
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   // Desktop: sidebar collapsed/expanded
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -126,32 +126,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* New: Floating Mobile Controls Group (Hamburger + Zoom) */}
-      <div className="mobile-controls-group">
-        <button
-          className="mobile-control-btn main"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Open sidebar"
-        >
-          ☰
-        </button>
-        <div className="mobile-zoom-group">
-          <button
-            className="mobile-control-btn zoom"
-            onClick={handleZoomIn}
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-          <button
-            className="mobile-control-btn zoom"
-            onClick={handleZoomOut}
-            aria-label="Zoom out"
-          >
-            −
-          </button>
-        </div>
-      </div>
+
 
       {/* Mobile backdrop */}
       <div

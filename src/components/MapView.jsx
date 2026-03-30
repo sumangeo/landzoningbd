@@ -1,15 +1,3 @@
-/**
- * MapView.jsx
- *
- * FIXES in this version:
- * ① Search now HIGHLIGHTS matching features (blue glow) and DIMS non-matches
- * ② Previous search popup is CLOSED before the new one opens (via map.closePopup())
- * ③ Clearing search restores all feature styles to normal
- * ④ Uses layerMapRef to store all Leaflet layer instances so a useEffect
- *    can imperatively manage them when `search` changes — without remounting
- *    the entire GeoJSON layer on every keystroke.
- */
-
 import { useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -38,6 +26,20 @@ const featureStyle = (feature, selectedId) => {
     fillOpacity: isSelected ? 0.88 : 0.55,
   };
 };
+
+// ─── Map Container Resize Fix ───────────────────────────────────────────────
+function ResizeHandler() {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
 
 // ─── ZoomToFeature ───────────────────────────────────────────────────────────
 
@@ -83,6 +85,14 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
   useEffect(() => { selectedRef.current = selectedId; }, [selectedId]);
   useEffect(() => { onClickRef.current = onFeatureClick; }, [onFeatureClick]);
   useEffect(() => { searchRef.current = search; }, [search]);
+
+  // FIX: Stable style function that bypasses Leaflet's stale cache and grabs the latest data
+  const styleFn = useCallback((leafletFeature) => {
+    const name = getName(leafletFeature.properties);
+    const key = leafletFeature.id ?? name;
+    const freshFeature = layerMapRef.current[key]?.feature || leafletFeature;
+    return featureStyle(freshFeature, selectedRef.current);
+  }, []);
 
   // ── KEY FIX ①②③: react to search changes ──────────────────────────────
   useEffect(() => {

@@ -224,9 +224,9 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
           <div class="map-popup-bar-fill" style="width:${progress}%;background:${statusColor}"></div>
         </div>
         <div class="admin-controls">
-          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="done">Done</button>
-          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="ongoing">Ongoing</button>
-          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="pending">Pending</button>
+          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="done" data-district="${district || ""}" data-division="${division || ""}">Done</button>
+          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="ongoing" data-district="${district || ""}" data-division="${division || ""}">Ongoing</button>
+          <button class="update-status-btn" data-id="${feature.id || ""}" data-status="pending" data-district="${district || ""}" data-division="${division || ""}">Pending</button>
         </div>
       </div>`,
       { closeButton: false, className: "custom-popup", maxWidth: 220 }
@@ -339,8 +339,10 @@ export default function MapView({
       if (btn) {
         const id = btn.dataset.id;
         const status = btn.dataset.status;
+        const district = btn.dataset.district;
+        const division = btn.dataset.division;
         if (id && status && onStatusUpdate) {
-          onStatusUpdate(id, status);
+          onStatusUpdate(id, status, district, division);
         }
       }
     };

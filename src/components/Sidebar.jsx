@@ -326,7 +326,7 @@ export default function Sidebar({
                             color: status === 'done' ? '#fff' : STATUS_COLORS.done,
                             background: status === 'done' ? STATUS_COLORS.done : 'transparent'
                           }}
-                          onClick={() => onStatusUpdate(featureId, "done")}
+                          onClick={() => onStatusUpdate(featureId, "done", p.district, p.division)}
                         >Done</button>
                         <button
                           className="sb-admin-action-btn"
@@ -335,7 +335,7 @@ export default function Sidebar({
                             color: status === 'ongoing' ? '#fff' : STATUS_COLORS.ongoing,
                             background: status === 'ongoing' ? STATUS_COLORS.ongoing : 'transparent'
                           }}
-                          onClick={() => onStatusUpdate(featureId, "ongoing")}
+                          onClick={() => onStatusUpdate(featureId, "ongoing", p.district, p.division)}
                         >Ongoing</button>
                         <button
                           className="sb-admin-action-btn"
@@ -344,7 +344,7 @@ export default function Sidebar({
                             color: status === 'pending' ? '#fff' : STATUS_COLORS.pending,
                             background: status === 'pending' ? STATUS_COLORS.pending : 'transparent'
                           }}
-                          onClick={() => onStatusUpdate(featureId, "pending")}
+                          onClick={() => onStatusUpdate(featureId, "pending", p.district, p.division)}
                         >Pending</button>
                       </div>
                     )}

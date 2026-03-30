@@ -51,10 +51,14 @@ export default function App() {
   const [showDistrict, setShowDistrict] = useState(true);
   const [showUpazila, setShowUpazila] = useState(true);
 
-  const updateUpazilaStatus = useCallback(async (id, newStatus) => {
+  const updateUpazilaStatus = useCallback(async (id, newStatus, district, division) => {
     if (!isAdmin) return;
     try {
-      await setDoc(doc(db, "upazila_status", id), { status: newStatus }, { merge: true });
+      await setDoc(doc(db, "upazila_status", id), { 
+        status: newStatus,
+        district: district,
+        division: division
+      }, { merge: true });
     } catch (error) {
       console.error("Error updating status:", error);
     }
@@ -62,7 +66,19 @@ export default function App() {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "upazila_status"), (snap) => {
-      setFirebaseData(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      const data = snap.docs.map((doc) => {
+        const d = doc.data();
+        // Enrich with district/division if missing (fixes grouping for old data)
+        if (!d.district || !d.division) {
+          const match = upazilaGeo.features.find((f) => f.id === doc.id);
+          if (match) {
+            d.district = d.district || match.properties.district;
+            d.division = d.division || match.properties.division;
+          }
+        }
+        return { id: doc.id, ...d };
+      });
+      setFirebaseData(data);
     });
     return () => unsub();
   }, []);

@@ -269,7 +269,9 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
           weight: 0.4,
         });
       } else {
-        e.target.setStyle(featureStyle(feature, selectedRef.current));
+        // MODIFIED: Look up the freshest feature data before applying style
+        const freshFeat = layerMapRef.current[key]?.feature || feature;
+        e.target.setStyle(featureStyle(freshFeat, selectedRef.current));
       }
     });
 
@@ -285,7 +287,7 @@ function GeoJsonLayer({ geojson, selectedId, search, onFeatureClick }) {
   return (
     <GeoJSON
       data={geojson}
-      style={(f) => featureStyle(f, selectedId)}
+      style={styleFn}
       onEachFeature={onEachFeature}
     />
   );
@@ -377,6 +379,7 @@ export default function MapView({
         />
 
         <CaptureMap onMapReady={onMapReady} />
+        <ResizeHandler />
         <WebViewTouchFix />
         <ZoomToFeature geojson={geojson} layer={layer} />
         <StaticOutlines showDivision={showDivision} showDistrict={showDistrict} />
